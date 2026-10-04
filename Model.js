@@ -93,12 +93,23 @@ function parseAttention(text) {
       approvals: items.filter(function(it) { return it && it.source === "approval" }).length,
       overdue: items.filter(function(it) { return it && it.source === "task" }).length,
       items: keep.slice(0, MAX_ROWS).map(function(it) {
-        return { source: plain(it.source), kind: plain(it.kind), title: plain(it.title), subtitle: plain(it.subtitle), url: String(it.url || "") }
+        var row = { source: plain(it.source), kind: plain(it.kind), title: plain(it.title), subtitle: plain(it.subtitle), url: String(it.url || "") }
+        row.meta = rowMeta(row)
+        return row
       }).filter(function(it) { return it.title !== "" })
     }
   } catch (e) {
     return { ok: false, enabled: false, approvals: 0, overdue: 0, items: [] }
   }
+}
+
+// The short label at the right of a "Waiting for you" row. The API's
+// subtitles are sentences ("Waiting for you to approve or deny", "Due Oct 4,
+// 10:30 PM · Q4 launch"); a sentence there squeezes the title to nothing.
+function rowMeta(row) {
+  if (row.source === "approval") return "Approval"
+  var due = String(row.subtitle || "").split(" · ")[0]
+  return due !== "" ? due : row.kind
 }
 
 // What the bar shows beside the mark: unread plus what waits for approval,

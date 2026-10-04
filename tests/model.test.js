@@ -50,6 +50,18 @@ test("parseAttention keeps only what must be acted on", () => {
   assert.equal(Model.parseAttention("").ok, false)
 })
 
+test("attention rows carry a short label, not the API's sentence", () => {
+  // The shapes business/AI/attention.go sends.
+  const a = Model.parseAttention(JSON.stringify({ data: { enabled: true, items: [
+    { source: "approval", kind: "Needs your approval", title: "Post the release notes", subtitle: "Waiting for you to approve or deny" },
+    { source: "task", kind: "Overdue", title: "Rollback drill", subtitle: "Was due Oct 2 · Q4 launch", url: "/app/task/t1" },
+    { source: "task", kind: "Due soon", title: "Cut notes", subtitle: "" },
+  ] } }))
+  assert.equal(a.items[0].meta, "Approval")
+  assert.equal(a.items[1].meta, "Was due Oct 2")
+  assert.equal(a.items[2].meta, "Due soon")
+})
+
 test("badgeText caps at three characters and is empty when clear", () => {
   assert.equal(Model.badgeText(0, 0), "")
   assert.equal(Model.badgeText(3, 1), "4")

@@ -39,11 +39,10 @@ Item {
   // The approvals count last seen, so a new one is announced once.
   property int _lastApprovals: -1
 
+  // Reloading the config fetches too (see onLoaded), so a workspace just
+  // connected shows up without a restart.
   function refresh() {
     confFile.reload()
-    if (!configured || unreadProc.running) return
-    loading = true
-    unreadProc.running = true
   }
 
   function workspaceUrl(path) { return Model.joinUrl(workspace, path || "/app/home") }
@@ -74,12 +73,19 @@ Item {
     path: root.confDir + "/onecamp.conf"
     watchChanges: true
     printErrors: false
-    onFileChanged: { reload(); root.refresh() }
+    onFileChanged: root.refresh()
     onLoaded: {
       var c = Model.parseConf(text())
       root.workspace = c.workspace
       root.api = c.api
       root.configured = c.ok
+      // Omarchy starts its shell with the file watcher off, so a new or
+      // changed config arrives here through refresh(); fetch right away
+      // rather than waiting for a timer that only runs once configured.
+      if (root.configured && !unreadProc.running) {
+        root.loading = true
+        unreadProc.running = true
+      }
     }
     onLoadFailed: {
       root.configured = false

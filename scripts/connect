@@ -90,4 +90,6 @@ mv "$tmp_header" "$header"
 chmod 600 "$header"
 trap - EXIT
 printf 'WORKSPACE=%s\nAPI=%s\n' "$workspace" "$api" > "$conf"
-echo "Connected to $workspace. The bar picks it up within a minute."
+# The shell runs without a file watcher; tell it the config changed.
+omarchy shell dev.onemana.onecamp refresh >/dev/null 2>&1 || true
+echo "Connected to $workspace."

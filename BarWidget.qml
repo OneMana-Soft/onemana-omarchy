@@ -138,7 +138,7 @@ BarWidget {
         delegate: OneMana.OneCampRow {
           required property var modelData
           title: modelData.title
-          meta: modelData.subtitle !== "" ? modelData.subtitle : modelData.kind
+          meta: modelData.meta
           urgent: modelData.source === "approval"
           onActivated: { root.close(); root.st.openPath(modelData.url !== "" ? modelData.url : "/app/home") }
         }
