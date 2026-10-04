@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Open the workspace, or one page of it: scripts/open [/app/path|https://…]
+# As a web app window (Omarchy's own launcher) so it sits beside the desktop
+# app's behaviour; the plain browser where that launcher is missing.
+set -euo pipefail
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/onemana/onecamp.conf"
+target="${1:-/app/home}"
+if [[ "$target" != http* ]]; then
+  [[ -f "$conf" ]] || { echo "Not connected yet. Run the connect step first."; exit 1; }
+  workspace=$(sed -n 's/^WORKSPACE=//p' "$conf")
+  target="${workspace%/}/${target#/}"
+fi
+if command -v omarchy-launch-webapp >/dev/null 2>&1; then exec omarchy-launch-webapp "$target"; fi
+exec xdg-open "$target"

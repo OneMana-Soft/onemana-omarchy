@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "dev.onemana.onecamp",
+  "name": "OneCamp",
+  "version": "1.0.0",
+  "author": "OneMana",
+  "license": "MIT",
+  "description": "Your OneCamp workspace on the Omarchy bar: unread messages and the agent actions waiting for your approval, one click from the app. Plus one-step setup for the OneCamp desktop app and AI that runs on this computer.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "OneCamp",
+    "description": "Unread messages and agent approvals from your OneCamp workspace.",
+    "category": "Productivity",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "refreshIntervalSec": 60,
+      "notifications": true
+    },
+    "schema": [
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Refresh interval (seconds)",
+        "description": "How often the workspace is asked what is waiting. At least 30.",
+        "min": 30,
+        "max": 900,
+        "step": 30,
+        "defaultValue": 60
+      },
+      {
+        "key": "notifications",
+        "type": "boolean",
+        "label": "Notify me about new approvals",
+        "description": "A desktop notification when an agent starts waiting for your approval.",
+        "defaultValue": true
+      }
+    ]
+  }
+}

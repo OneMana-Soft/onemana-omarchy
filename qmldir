@@ -1,0 +1,3 @@
+module dev.onemana.onecamp
+singleton OneCampState 1.0 OneCampState.qml
+OneCampRow 1.0 OneCampRow.qml

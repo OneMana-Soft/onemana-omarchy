@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Link this computer to a OneCamp workspace for the bar widget.
+#
+# Asks for the workspace address and a personal API token with the
+# attention:read scope (create one at <workspace>/app/settings/api-tokens),
+# finds the workspace's API by trying the token against the addresses OneCamp
+# uses, and stores what worked:
+#   ~/.config/onemana/onecamp.conf    WORKSPACE= and API= (not secret)
+#   ~/.config/onemana/onecamp.header  the Authorization header, mode 600
+# curl reads the header from that file (-H @file), so the token never appears
+# in a process list or the shell history.
+set -euo pipefail
+
+dir="${XDG_CONFIG_HOME:-$HOME/.config}/onemana"
+conf="$dir/onecamp.conf"
+header="$dir/onecamp.header"
+
+ask() { # ask <prompt> <placeholder> [--password]
+  if command -v gum >/dev/null 2>&1; then
+    if [[ "${3:-}" == "--password" ]]; then gum input --password --prompt "$1 " --placeholder "$2"
+    else gum input --prompt "$1 " --placeholder "$2"; fi
+  else
+    local v
+    if [[ "${3:-}" == "--password" ]]; then read -rsp "$1 " v; echo >&2; else read -rp "$1 " v; fi
+    printf '%s' "$v"
+  fi
+}
+
+normalise() { # what Model.normaliseWorkspace does, for the shell
+  local s="${1// /}"
+  [[ "$s" == *://* ]] || s="https://$s"
+  s="${s%%\?*}"; s="${s%%#*}"
+  local scheme="${s%%://*}" rest="${s#*://}"
+  local host="${rest%%/*}"
+  host="${host,,}"
+  [[ "$host" =~ ^[a-z0-9.-]+(:[0-9]+)?$ ]] || return 1
+  if [[ "$scheme" == "http" && ! "$host" =~ ^(localhost|127\.0\.0\.1)(:[0-9]+)?$ ]]; then return 1; fi
+  printf '%s://%s' "$scheme" "$host"
+}
+
+echo "Connect OneCamp to your Omarchy bar."
+echo
+workspace_in=$(ask "Workspace address:" "onecamp.yourcompany.com")
+workspace=$(normalise "$workspace_in") || { echo "That is not a workspace address."; exit 1; }
+echo "Create a token at $workspace/app/settings/api-tokens with the scope attention:read, then paste it here."
+token=$(ask "API token:" "paste the token" --password)
+[[ -n "$token" ]] || { echo "No token given."; exit 1; }
+
+mkdir -p "$dir"
+chmod 700 "$dir"
+umask 077
+tmp_header=$(mktemp "$dir/.header.XXXXXX")
+trap 'rm -f "$tmp_header"' EXIT
+printf 'Authorization: Bearer %s\n' "$token" > "$tmp_header"
+
+# The API host by OneCamp's naming: onecamp.example.com -> onecamp-backend.example.com
+# for your own domain; managed workspaces use onecamp-backend.<slug>.<zone>.
+scheme="${workspace%%://*}"
+host="${workspace#*://}"
+first="${host%%.*}"; rest="${host#*.}"
+candidates=()
+if [[ "$first" == "onecamp" ]]; then candidates+=("$scheme://onecamp-backend.$rest"); fi
+candidates+=("$scheme://onecamp-backend.$host" "$scheme://$first-backend.$rest")
+
+api=""
+for c in "${candidates[@]}"; do
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 -H @"$tmp_header" "$c/v1/me" || true)
+  if [[ "$code" == "200" ]]; then api="$c"; break; fi
+  if [[ "$code" == "401" || "$code" == "403" ]]; then
+    echo "The workspace at $c refused the token. Check it was copied whole and is not revoked."
+    exit 1
+  fi
+done
+if [[ -z "$api" ]]; then
+  api_in=$(ask "API address (couldn't find it):" "onecamp-backend.yourcompany.com")
+  api=$(normalise "$api_in") || { echo "That is not an address."; exit 1; }
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 -H @"$tmp_header" "$api/v1/me" || true)
+  [[ "$code" == "200" ]] || { echo "No answer from $api/v1/me (HTTP $code)."; exit 1; }
+fi
+
+code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 -H @"$tmp_header" "$api/v1/unread" || true)
+case "$code" in
+  200) ;;
+  403) echo "The token works but lacks attention:read. Create one with that scope."; exit 1 ;;
+  404) echo "This workspace is older than the API the bar needs. Ask an admin to update OneCamp."; exit 1 ;;
+  *) echo "The workspace answered HTTP $code for /v1/unread."; exit 1 ;;
+esac
+
+mv "$tmp_header" "$header"
+chmod 600 "$header"
+trap - EXIT
+printf 'WORKSPACE=%s\nAPI=%s\n' "$workspace" "$api" > "$conf"
+echo "Connected to $workspace. The bar picks it up within a minute."

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Run AI on this computer: Ollama and the model OneCamp uses by default.
+#
+# qwen3:4b-instruct handled 12 of 15 agent jobs on an ordinary 4-core CPU at
+# about five seconds a reply (OneCamp's benchmark, Oct 2026). Point OneCamp's
+# Admin, AI panel at http://<this machine>:11434 to use it, or just use it from
+# the terminal with `ollama run`.
+set -euo pipefail
+model="${ONEMANA_MODEL:-qwen3:4b-instruct}"
+
+if ! command -v ollama >/dev/null 2>&1; then
+  pkg=ollama
+  if lspci 2>/dev/null | grep -qi nvidia; then pkg=ollama-cuda; fi
+  if lspci 2>/dev/null | grep -qiE 'vga.*(amd|ati)'; then pkg=ollama-rocm; fi
+  echo "Installing $pkg (asks for your password)."
+  sudo pacman -S --needed --noconfirm "$pkg"
+fi
+systemctl is-active --quiet ollama || sudo systemctl enable --now ollama
+echo "Pulling $model (about 2.5 GB, once)."
+ollama pull "$model"
+echo
+echo "Ready. Try: ollama run $model"

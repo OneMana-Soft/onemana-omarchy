@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Install the OneCamp desktop app (Linux AppImage) for this user.
+#
+# Fetches the latest release from github.com/OneMana-Soft/OneCamp-desktop and
+# checks it against the app's own update signing key (the minisign key in the
+# app's tauri.conf.json) before anything runs. Installs to ~/.local/bin with a
+# launcher entry. No sudo.
+set -euo pipefail
+
+repo="OneMana-Soft/OneCamp-desktop"
+pubkey_b64="dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU0QTI1NzA4OTNBMTA5M0UKUldRK0NhR1RDRmVpVlA5V0JlaEtFd3lQRDJMYlpIWldQeW1TTGp3NWI0d2JqNHYydDRuQUZDQk4K"
+
+command -v minisign >/dev/null 2>&1 || {
+  echo "minisign checks the download's signature. Install it first: sudo pacman -S minisign"
+  exit 1
+}
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+api="https://api.github.com/repos/$repo/releases/latest"
+url=$(curl -fsSL "$api" | grep -o '"browser_download_url": *"[^"]*\.AppImage"' | head -1 | sed 's/.*"\(https[^"]*\)"/\1/')
+[[ -n "$url" ]] || { echo "Could not find the latest AppImage."; exit 1; }
+
+echo "Downloading $(basename "$url")"
+curl -fL --progress-bar -o "$work/OneCamp.AppImage" "$url"
+curl -fsSL -o "$work/OneCamp.AppImage.sig.b64" "$url.sig"
+
+base64 -d <<<"$pubkey_b64" > "$work/onecamp.pub"
+base64 -d < "$work/OneCamp.AppImage.sig.b64" > "$work/OneCamp.AppImage.minisig"
+minisign -Vm "$work/OneCamp.AppImage" -x "$work/OneCamp.AppImage.minisig" -p "$work/onecamp.pub" >/dev/null \
+  || { echo "The download's signature did not verify. Nothing was installed."; exit 1; }
+
+bin="$HOME/.local/bin"
+apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+mkdir -p "$bin" "$apps"
+install -m 755 "$work/OneCamp.AppImage" "$bin/onecamp"
+cat > "$apps/onecamp.desktop" <<DESKTOP
+[Desktop Entry]
+Name=OneCamp
+Comment=Your team's chat, docs, tasks and calls
+Exec=$bin/onecamp
+Icon=onecamp
+Type=Application
+Categories=Network;Office;
+DESKTOP
+echo "Installed. Open OneCamp from the app launcher, or run: onecamp"
