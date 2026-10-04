@@ -37,7 +37,7 @@ Item {
     anchors.verticalCenter: parent.verticalCenter
     text: line.meta
     textFormat: Text.PlainText
-    color: Color.muted
+    color: Qt.darker(Color.popups.text, 1.55)
     font.family: Style.font.family
     font.pixelSize: Style.font.caption
   }

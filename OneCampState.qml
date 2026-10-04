@@ -116,10 +116,14 @@ Item {
     onExited: function(exitCode) {
       root.loading = false
       var r = Model.splitStatus(attentionOut.text)
-      if (exitCode !== 0 || r.http !== 200) {
+      // 404: an edition without AI, so there is nothing to wait for. Any
+      // other failure keeps the last counts, like unread does; the bar dims
+      // and the popup says why.
+      if (exitCode === 0 && r.http === 404) {
         root.attention = Model.parseAttention("")
         return
       }
+      if (exitCode !== 0 || r.http !== 200) return
       root.attention = Model.parseAttention(r.body)
       var n = root.attention.approvals
       if (root.notifyEnabled && root._lastApprovals >= 0 && n > root._lastApprovals) {

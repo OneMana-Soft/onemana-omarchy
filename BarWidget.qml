@@ -53,7 +53,8 @@ BarWidget {
     // The ring is OneCamp's mark; the count is everything waiting for you.
     text: root.st.badge === "" ? "" : " " + root.st.badge
     active: root.st.needsAction
-    dimmed: !root.st.configured
+    // Not connected, or the last check failed: the count may be stale.
+    dimmed: !root.st.configured || root.st.error !== ""
     tooltipText: "OneCamp · " + root.st.summary
     onPressed: function(b) {
       if (b === Qt.RightButton) root.st.openPath("/app/home")
@@ -68,7 +69,7 @@ BarWidget {
     bar: root.bar
     owner: root
     open: root.popupOpen
-    contentWidth: popup.fittedContentWidth(Style.space(320))
+    contentWidth: popup.fittedContentWidth(Style.space(360))
     contentHeight: popup.fittedContentHeight(column.implicitHeight)
 
     Column {
@@ -100,7 +101,7 @@ BarWidget {
             text: root.st.summary
             textFormat: Text.PlainText
             wrapMode: Text.WordWrap
-            color: root.st.error !== "" ? Color.urgent : Color.muted
+            color: root.st.error !== "" ? Color.urgent : Qt.darker(Color.popups.text, 1.55)
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
           }
@@ -160,7 +161,7 @@ BarWidget {
       Text {
         visible: root.st.configured && root.st.error === "" && root.st.unread.total === 0 && root.st.attention.items.length === 0
         text: root.st.loading ? "Checking…" : "All caught up."
-        color: Color.muted
+        color: Qt.darker(Color.popups.text, 1.55)
         font.family: Style.font.family
         font.pixelSize: Style.font.caption
       }

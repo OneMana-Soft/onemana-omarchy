@@ -2,6 +2,8 @@
 
 Your [OneCamp](https://onemana.dev) workspace on the [Omarchy](https://omarchy.org) bar.
 
+![The OneCamp popup on Omarchy's bar: one approval waiting and twelve unread messages](docs/popup.png)
+
 - **What is waiting for you, at a glance.** The OneCamp ring on the bar shows your
   unread messages, and turns red when an AI agent is waiting for your approval.
   Click for the list; click a line to open it.
