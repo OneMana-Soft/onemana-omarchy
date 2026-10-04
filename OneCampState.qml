@@ -21,6 +21,9 @@ Item {
   readonly property string confDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/onemana"
   readonly property string headerPath: confDir + "/onecamp.header"
   readonly property string scriptsDir: String(Qt.resolvedUrl("scripts")).replace(/^file:\/\//, "")
+  // OneCamp's own mark for notifications: icon themes differ, and a missing
+  // name renders as a magenta placeholder (Omarchy has no "dialog-question").
+  readonly property string iconPath: String(Qt.resolvedUrl("icon.png")).replace(/^file:\/\//, "")
 
   property bool configured: false
   property string workspace: ""
@@ -133,7 +136,7 @@ Item {
       root.attention = Model.parseAttention(r.body)
       var n = root.attention.approvals
       if (root.notifyEnabled && root._lastApprovals >= 0 && n > root._lastApprovals) {
-        Quickshell.execDetached(["notify-send", "-a", "OneCamp", "-i", "dialog-question",
+        Quickshell.execDetached(["notify-send", "-a", "OneCamp", "-i", root.iconPath,
           n === 1 ? "An agent is waiting for your approval" : n + " agent actions are waiting for your approval",
           "Open OneCamp to approve or deny."])
       }
